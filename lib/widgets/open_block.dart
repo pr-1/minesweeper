@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:minesweeper/core/colors.dart';
 import 'package:minesweeper/core/enums/block_state.dart';
 import 'package:minesweeper/core/ui_utilities.dart';
 
@@ -17,8 +18,9 @@ class OpenMineTile extends StatelessWidget {
           text: TextSpan(
             text: '$count',
             style: TextStyle(
+              fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.blue,
+              color: textColors[count - 1],
             ),
           ),
           textAlign: TextAlign.center,
@@ -29,6 +31,7 @@ class OpenMineTile extends StatelessWidget {
         text: TextSpan(
           text: '\u2739',
           style: TextStyle(
+            fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Colors.red,
           ),
@@ -36,6 +39,6 @@ class OpenMineTile extends StatelessWidget {
         textAlign: TextAlign.center,
       );
     }
-    return buildTile(buildInnerTile(text));
+    return buildTile(buildInnerTile(Center(child: text)));
   }
 }

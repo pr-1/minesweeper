@@ -52,43 +52,42 @@ class _GameBoardState extends State<GameBoard> {
 
   @override
   Widget build(BuildContext context) {
-    List<Row> boardRow = <Row>[];
-    for (int i = 0; i < rows; i++) {
-      List<Widget> rowChildren = <Widget>[];
-      for (int j = 0; j < cols; j++) {
-        BlockState state = uiState[i][j];
-        if (state == BlockState.COVERED || state == BlockState.FLAGGED) {
-          rowChildren.add(GestureDetector(
-            onLongPress: () => showFlag(j,i),
-            child: CoveredMineTile(
-              flagged: state == BlockState.FLAGGED,
-              posX: j,
-              posY: i,
-            ),
-          ));
-        } else {
-          rowChildren.add(OpenMineTile(
-            state: state,
-            count: 1,
-          ));
-        }
-      }
-      boardRow.add(Row(
-        children: rowChildren,
-        mainAxisAlignment: MainAxisAlignment.center,
-        key: ValueKey<int>(i),
-      ));
-    }
     return Container(
-//      color: Colors.grey[700],
       padding: EdgeInsets.all(10.0),
-      child: Column(
-        children: boardRow,
-      ),
+      child: GridView.builder(
+          shrinkWrap: true,
+          physics: NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: cols,
+          ),
+          itemCount: rows*cols,
+          itemBuilder: (context, index) {
+            int i = (index / cols).floor();
+            int j = (index % cols);
+            BlockState state = uiState[i][j];
+            if (state == BlockState.COVERED || state == BlockState.FLAGGED) {
+              return GestureDetector(
+                onLongPress: () => showFlag(j, i),
+                onTap: () => openSingleBlock(j, i),
+                child: Listener(
+                  child: CoveredMineTile(
+                    flagged: state == BlockState.FLAGGED,
+                    posX: j,
+                    posY: i,
+                  ),
+                ),
+              );
+            } else {
+              return OpenMineTile(
+                state: state,
+                count: mineCount(j, i),
+              );
+            }
+          }),
     );
   }
 
-  bool isInsideBoard(int x, int y) => x>0&&x<cols && y>0 &&y<rows;
+  bool isInsideBoard(int x, int y) => x>=0&&x<cols && y>=0 &&y<rows;
 
   int getBombInBlock(int x, int y) => isInsideBoard(x, y) && tiles[y][x] ? 1 : 0;
 
@@ -119,6 +118,13 @@ class _GameBoardState extends State<GameBoard> {
 
   void openSingleBlock(int x, int y) {
     if(uiState[y][x] == BlockState.FLAGGED)return;
+    if(tiles[y][x]) {
+        uiState[y][x] = BlockState.BLOWN;
+    } else {
+      openBlock(x,y);
+    }
+    setState(() {
+    });
   }
 
   void openBlock(int x, int y) {
