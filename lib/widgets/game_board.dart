@@ -14,7 +14,7 @@ class GameBoard extends StatefulWidget {
 class _GameBoardState extends State<GameBoard> {
   final int rows = 9;
   final int cols = 9;
-  final int numOfMines = 3;
+  final int numOfMines = 11;
 
   List<List<BlockState>> uiState;
   List<List<bool>> tiles;
