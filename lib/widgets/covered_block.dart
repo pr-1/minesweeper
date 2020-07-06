@@ -23,13 +23,18 @@ class CoveredMineTile extends StatelessWidget {
         textAlign: TextAlign.center,
       ));
     }
-    Widget innerTile = Container(
-      padding: EdgeInsets.all(1.0),
-      margin: EdgeInsets.all(2.0),
-      height: 20.0,
-      width: 20.0,
-      color: Colors.grey[350],
-      child: text,
+    Widget innerTile = Card(
+      elevation: 2,
+      shadowColor: Colors.cyan,
+      child: Container(
+        padding: EdgeInsets.all(1.0),
+        height: 20.0,
+        width: 20.0,
+        decoration: BoxDecoration(
+            color: Colors.grey[350],
+        ),
+        child: text,
+      ),
     );
 
     return buildTile(innerTile);

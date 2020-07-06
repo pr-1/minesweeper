@@ -15,11 +15,8 @@ class _GameBoardState extends State<GameBoard> {
   final int rows = 9;
   final int cols = 9;
   final int numOfMines = 11;
-
   List<List<BlockState>> uiState;
   List<List<bool>> tiles;
-
-
   bool hasWon = false;
   bool alive = false;
   int bombCount = 0;
@@ -217,7 +214,7 @@ class _GameBoardState extends State<GameBoard> {
             title: Text("Congratulations!"),
             content: Text("You Win!"),
             actions: <Widget>[
-              FlatButton(
+              RaisedButton(
                 onPressed: () {
                   resetBoard();
                   setState(() {
@@ -241,7 +238,7 @@ class _GameBoardState extends State<GameBoard> {
           title: Text("Game Over!"),
           content: Text("You stepped on a mine!"),
           actions: <Widget>[
-            FlatButton(
+            RaisedButton(
               onPressed: () {
                 resetBoard();
                 setState(() {
