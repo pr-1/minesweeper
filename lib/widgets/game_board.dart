@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -15,14 +16,27 @@ class _GameBoardState extends State<GameBoard> {
   final int cols = 9;
   final int numOfMines = 11;
 
-  int bombProbability = 3;
-  int maxProbability = 15;
-
-  int bombCount = 0;
   List<List<BlockState>> uiState;
   List<List<bool>> tiles;
 
+
+  bool hasWon = false;
+  bool alive = false;
+  int bombCount = 0;
+  Stopwatch _stopwatch = Stopwatch();
+  Timer _timer;
+
   void resetBoard() {
+    hasWon = false;
+    alive = true;
+    bombCount = 0;
+    _stopwatch.reset();
+    _stopwatch.stop();
+    _timer?.cancel();
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      setState(() {
+      });
+    });
     uiState = new List<List<BlockState>>.generate(rows, (row) {
       return new List<BlockState>.filled(cols, BlockState.COVERED);
     });
@@ -51,7 +65,15 @@ class _GameBoardState extends State<GameBoard> {
   }
 
   @override
+  void dispose() {
+    // TODO: implement dispose
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    bool hasCoveredCell = false;
     return Container(
       padding: EdgeInsets.all(10.0),
       child: GridView.builder(
@@ -65,10 +87,24 @@ class _GameBoardState extends State<GameBoard> {
             int i = (index / cols).floor();
             int j = (index % cols);
             BlockState state = uiState[i][j];
+            if(!alive) {
+              if(state != BlockState.BLOWN) {
+                state = tiles[i][j] ? BlockState.REVEALED: state;
+              }
+            }
+            if(!hasCoveredCell) {
+              if(bombCount == numOfMines){
+                hasWon = true;
+                _stopwatch.stop();
+              }
+            }
             if (state == BlockState.COVERED || state == BlockState.FLAGGED) {
+              if(state == BlockState.COVERED) {
+                hasCoveredCell = true;
+              }
               return GestureDetector(
                 onLongPress: () => showFlag(j, i),
-                onTap: () => openSingleBlock(j, i),
+                onTap: () => state == BlockState.COVERED?openSingleBlock(j, i): null,
                 child: Listener(
                   child: CoveredMineTile(
                     flagged: state == BlockState.FLAGGED,
@@ -106,22 +142,30 @@ class _GameBoardState extends State<GameBoard> {
 
   // TO DISPLAY FLAG ON LONG PRESS OF A BLOCK
   void showFlag(int x, int y) {
+    if(!alive) return;
     setState(() {
       if(uiState[y][x] == BlockState.FLAGGED) {
         uiState[y][x] = BlockState.COVERED;
+        --bombCount;
       }else {
         uiState[y][x] = BlockState.FLAGGED;
+        ++bombCount;
       }
     });
   }
 
 
   void openSingleBlock(int x, int y) {
+    if(!alive) return;
+    BlockState state = uiState[y][x];
     if(uiState[y][x] == BlockState.FLAGGED)return;
     if(tiles[y][x]) {
         uiState[y][x] = BlockState.BLOWN;
+        alive = false;
+        _timer.cancel();
     } else {
       openBlock(x,y);
+      if(!_stopwatch.isRunning) _stopwatch.start();
     }
     setState(() {
     });
