@@ -59,12 +59,12 @@ class _GameBoardState extends State<GameBoard> {
         BlockState state = uiState[i][j];
         if (state == BlockState.COVERED || state == BlockState.FLAGGED) {
           rowChildren.add(GestureDetector(
-            child: Listener(
-                child: CoveredMineTile(
-                  flagged: state == BlockState.FLAGGED,
-                  posX: i,
-                  posY: j,
-                )),
+            onLongPress: () => showFlag(j,i),
+            child: CoveredMineTile(
+              flagged: state == BlockState.FLAGGED,
+              posX: j,
+              posY: i,
+            ),
           ));
         } else {
           rowChildren.add(OpenMineTile(
@@ -80,11 +80,66 @@ class _GameBoardState extends State<GameBoard> {
       ));
     }
     return Container(
-      color: Colors.grey[700],
+//      color: Colors.grey[700],
       padding: EdgeInsets.all(10.0),
       child: Column(
         children: boardRow,
       ),
     );
+  }
+
+  bool isInsideBoard(int x, int y) => x>0&&x<cols && y>0 &&y<rows;
+
+  int getBombInBlock(int x, int y) => isInsideBoard(x, y) && tiles[y][x] ? 1 : 0;
+
+  int mineCount(int x, int y) {
+    int count = 0;
+    count += getBombInBlock(x -1, y);
+    count += getBombInBlock(x +1, y);
+    count += getBombInBlock(x, y-1);
+    count += getBombInBlock(x, y+1);
+    count += getBombInBlock(x-1, y-1);
+    count += getBombInBlock(x+1, y-1);
+    count += getBombInBlock(x-1, y+1);
+    count += getBombInBlock(x+1, y+1);
+    return count;
+  }
+
+  // TO DISPLAY FLAG ON LONG PRESS OF A BLOCK
+  void showFlag(int x, int y) {
+    setState(() {
+      if(uiState[y][x] == BlockState.FLAGGED) {
+        uiState[y][x] = BlockState.COVERED;
+      }else {
+        uiState[y][x] = BlockState.FLAGGED;
+      }
+    });
+  }
+
+
+  void openSingleBlock(int x, int y) {
+    if(uiState[y][x] == BlockState.FLAGGED)return;
+  }
+
+  void openBlock(int x, int y) {
+    // IF X,Y IS NOT ON BOARD RETURN
+    if(!isInsideBoard(x,y)) return;
+    // IF BLOCK IS ALREADY OPEN RETURN
+    if(uiState[y][x] == BlockState.OPEN)return;
+    // OPEN BLOCK NOW
+    uiState[y][x] = BlockState.OPEN;
+    
+    // IF WE HIT SOME BLOCK WITH NO BOMBS IN NEIGHBOUR RETURN
+    if(mineCount(x, y) > 0) return;
+    // ELSE OPEN ALL ADJACENT BLOCKS
+    // RECURSIVE BECAUSE MINESWEEPER DOES THAT
+    openBlock(x -1, y);
+    openBlock(x +1, y);
+    openBlock(x, y-1);
+    openBlock(x, y+1);
+    openBlock(x-1, y-1);
+    openBlock(x+1, y-1);
+    openBlock(x-1, y+1);
+    openBlock(x+1, y+1);
   }
 }
