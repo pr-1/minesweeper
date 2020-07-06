@@ -14,7 +14,7 @@ class GameBoard extends StatefulWidget {
 class _GameBoardState extends State<GameBoard> {
   final int rows = 9;
   final int cols = 9;
-  final int numOfMines = 11;
+  final int numOfMines = 3;
 
   List<List<BlockState>> uiState;
   List<List<bool>> tiles;
@@ -23,20 +23,13 @@ class _GameBoardState extends State<GameBoard> {
   bool hasWon = false;
   bool alive = false;
   int bombCount = 0;
-  Stopwatch _stopwatch = Stopwatch();
-  Timer _timer;
+  int squaresLeft;
 
   void resetBoard() {
     hasWon = false;
     alive = true;
     bombCount = 0;
-    _stopwatch.reset();
-    _stopwatch.stop();
-    _timer?.cancel();
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      setState(() {
-      });
-    });
+    squaresLeft = rows*cols;
     uiState = new List<List<BlockState>>.generate(rows, (row) {
       return new List<BlockState>.filled(cols, BlockState.COVERED);
     });
@@ -67,7 +60,6 @@ class _GameBoardState extends State<GameBoard> {
   @override
   void dispose() {
     // TODO: implement dispose
-    _timer?.cancel();
     super.dispose();
   }
 
@@ -76,50 +68,62 @@ class _GameBoardState extends State<GameBoard> {
     bool hasCoveredCell = false;
     return Container(
       padding: EdgeInsets.all(10.0),
-      child: GridView.builder(
-          shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: cols,
-          ),
-          itemCount: rows*cols,
-          itemBuilder: (context, index) {
-            int i = (index / cols).floor();
-            int j = (index % cols);
-            BlockState state = uiState[i][j];
-            if(!alive) {
-              if(state != BlockState.BLOWN) {
-                state = tiles[i][j] ? BlockState.REVEALED: state;
-              }
+      child: Column(
+        children: <Widget>[
+          GridView.builder(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: cols,
+              ),
+              itemCount: rows*cols,
+              itemBuilder: (context, index) {
+                int i = (index / cols).floor();
+                int j = (index % cols);
+                BlockState state = uiState[i][j];
+                if(!alive) {
+                  if(state != BlockState.BLOWN) {
+                    state = tiles[i][j] ? BlockState.REVEALED: state;
+                  }
+                }
+                if(!hasCoveredCell) {
+                  if(bombCount == numOfMines){
+                    hasWon = true;
+                  }
+                }
+                if (state == BlockState.COVERED || state == BlockState.FLAGGED) {
+                  if(state == BlockState.COVERED) {
+                    hasCoveredCell = true;
+                  }
+                  return GestureDetector(
+                    onLongPress: () => showFlag(j, i, hasCoveredCell),
+                    onTap: () => state == BlockState.COVERED?openSingleBlock(j, i): null,
+                    child: Listener(
+                      child: CoveredMineTile(
+                        flagged: state == BlockState.FLAGGED,
+                        posX: j,
+                        posY: i,
+                      ),
+                    ),
+                  );
+                } else {
+                  return OpenMineTile(
+                    state: state,
+                    count: neighbourMineCount(j, i),
+                  );
+                }
+              }),
+          SizedBox(height: 30,),
+          RaisedButton(
+            child: Text('Reset'),
+            onPressed: () {
+              resetBoard();
+              setState(() {
+              });
             }
-            if(!hasCoveredCell) {
-              if(bombCount == numOfMines){
-                hasWon = true;
-                _stopwatch.stop();
-              }
-            }
-            if (state == BlockState.COVERED || state == BlockState.FLAGGED) {
-              if(state == BlockState.COVERED) {
-                hasCoveredCell = true;
-              }
-              return GestureDetector(
-                onLongPress: () => showFlag(j, i),
-                onTap: () => state == BlockState.COVERED?openSingleBlock(j, i): null,
-                child: Listener(
-                  child: CoveredMineTile(
-                    flagged: state == BlockState.FLAGGED,
-                    posX: j,
-                    posY: i,
-                  ),
-                ),
-              );
-            } else {
-              return OpenMineTile(
-                state: state,
-                count: mineCount(j, i),
-              );
-            }
-          }),
+          )
+        ],
+      ),
     );
   }
 
@@ -127,7 +131,7 @@ class _GameBoardState extends State<GameBoard> {
 
   int getBombInBlock(int x, int y) => isInsideBoard(x, y) && tiles[y][x] ? 1 : 0;
 
-  int mineCount(int x, int y) {
+  int neighbourMineCount(int x, int y) {
     int count = 0;
     count += getBombInBlock(x -1, y);
     count += getBombInBlock(x +1, y);
@@ -141,7 +145,7 @@ class _GameBoardState extends State<GameBoard> {
   }
 
   // TO DISPLAY FLAG ON LONG PRESS OF A BLOCK
-  void showFlag(int x, int y) {
+  void showFlag(int x, int y, bool hasCoveredCell) {
     if(!alive) return;
     setState(() {
       if(uiState[y][x] == BlockState.FLAGGED) {
@@ -152,35 +156,47 @@ class _GameBoardState extends State<GameBoard> {
         ++bombCount;
       }
     });
+    print(bombCount);
+      if(bombCount == numOfMines){
+        hasWon = true;
+        _handleWin();
+      }
   }
 
 
   void openSingleBlock(int x, int y) {
     if(!alive) return;
-    BlockState state = uiState[y][x];
     if(uiState[y][x] == BlockState.FLAGGED)return;
     if(tiles[y][x]) {
         uiState[y][x] = BlockState.BLOWN;
         alive = false;
-        _timer.cancel();
+        _handleGameOver();
     } else {
       openBlock(x,y);
-      if(!_stopwatch.isRunning) _stopwatch.start();
     }
     setState(() {
     });
+    print(squaresLeft);
+    if(squaresLeft == numOfMines) {
+      _handleWin();
+    }
   }
 
   void openBlock(int x, int y) {
+    print('inside recursive funxction');
     // IF X,Y IS NOT ON BOARD RETURN
     if(!isInsideBoard(x,y)) return;
     // IF BLOCK IS ALREADY OPEN RETURN
-    if(uiState[y][x] == BlockState.OPEN)return;
+    if(uiState[y][x] == BlockState.OPEN) {
+      return;
+    } else {
+      squaresLeft --;
+    }
     // OPEN BLOCK NOW
     uiState[y][x] = BlockState.OPEN;
     
     // IF WE HIT SOME BLOCK WITH NO BOMBS IN NEIGHBOUR RETURN
-    if(mineCount(x, y) > 0) return;
+    if(neighbourMineCount(x, y) > 0) return;
     // ELSE OPEN ALL ADJACENT BLOCKS
     // RECURSIVE BECAUSE MINESWEEPER DOES THAT
     openBlock(x -1, y);
@@ -191,5 +207,52 @@ class _GameBoardState extends State<GameBoard> {
     openBlock(x+1, y-1);
     openBlock(x-1, y+1);
     openBlock(x+1, y+1);
+  }
+  void _handleWin() {
+    Timer(Duration(seconds: 0), () {
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text("Congratulations!"),
+            content: Text("You Win!"),
+            actions: <Widget>[
+              FlatButton(
+                onPressed: () {
+                  resetBoard();
+                  setState(() {
+                  });
+                  Navigator.pop(context);
+                },
+                child: Text("Play again"),
+              ),
+            ],
+          );
+        },
+      );
+    });
+  }
+
+  void _handleGameOver() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Game Over!"),
+          content: Text("You stepped on a mine!"),
+          actions: <Widget>[
+            FlatButton(
+              onPressed: () {
+                resetBoard();
+                setState(() {
+                });
+                Navigator.pop(context);
+              },
+              child: Text("Play again"),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
