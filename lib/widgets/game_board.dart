@@ -67,6 +67,13 @@ class _GameBoardState extends State<GameBoard> {
       padding: EdgeInsets.all(10.0),
       child: Column(
         children: <Widget>[
+          SizedBox(height: 30,),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Text('Total Bombs: $numOfMines', style: TextStyle(fontSize: 18),)
+            ],),
+          SizedBox(height: 30,),
           GridView.builder(
               shrinkWrap: true,
               physics: NeverScrollableScrollPhysics(),
@@ -83,17 +90,13 @@ class _GameBoardState extends State<GameBoard> {
                     state = tiles[i][j] ? BlockState.REVEALED: state;
                   }
                 }
-                if(!hasCoveredCell) {
-                  if(bombCount == numOfMines){
-                    hasWon = true;
-                  }
-                }
+
                 if (state == BlockState.COVERED || state == BlockState.FLAGGED) {
                   if(state == BlockState.COVERED) {
                     hasCoveredCell = true;
                   }
                   return GestureDetector(
-                    onLongPress: () => showFlag(j, i, hasCoveredCell),
+                    onLongPress: () => showFlag(j, i),
                     onTap: () => state == BlockState.COVERED?openSingleBlock(j, i): null,
                     child: Listener(
                       child: CoveredMineTile(
@@ -142,15 +145,15 @@ class _GameBoardState extends State<GameBoard> {
   }
 
   // TO DISPLAY FLAG ON LONG PRESS OF A BLOCK
-  void showFlag(int x, int y, bool hasCoveredCell) {
+  void showFlag(int x, int y) {
     if(!alive) return;
     setState(() {
       if(uiState[y][x] == BlockState.FLAGGED) {
         uiState[y][x] = BlockState.COVERED;
-        --bombCount;
+        if(tiles[y][x])--bombCount;
       }else {
         uiState[y][x] = BlockState.FLAGGED;
-        ++bombCount;
+        if(tiles[y][x])++bombCount;
       }
     });
     print(bombCount);
